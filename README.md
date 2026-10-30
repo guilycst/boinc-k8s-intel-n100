@@ -162,6 +162,7 @@ make check
 
 Checks render all Kustomizations, parse XML, inspect workload isolation and
 budgets, and exercise hysteresis, startup RPC failure and configuration handling.
+See [VALIDATION.md](VALIDATION.md) for the public image and runtime test receipt.
 CI builds the image on AMD64. Local unit/manifest checks do not prove iGPU driver
 compatibility or scientific-task availability; those depend on the target host
 and project. The CPU tutorial was previously reproduced on Kubernetes 1.35;
