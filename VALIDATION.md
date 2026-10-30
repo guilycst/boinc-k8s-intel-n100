@@ -58,7 +58,7 @@ guard remained mounted, and the portable pilot manifests were not redeployed.
   window, then restored. The separate CPU client was left running. No thermal
   override, resource increase or additional persistent scientific client was used.
 
-## Coverage
+## Initial rollout coverage
 
 The OpenCL kernel verifies device execution and returned data for this exact
 image and host. The NumberFields task's reported fraction remained `0.860106`,
@@ -69,3 +69,49 @@ restarts were observed during the rollout checks.
 
 The earlier CPU smoke test used AMD64 emulation. The portable pilot bootstrap
 and manifests still need validation together on their selected physical nodes.
+
+## Scientific GPU task follow-up
+
+A follow-up observation on 2026-10-30 confirmed execution by the existing
+NumberFields application on the physical GPU. This observation made no workload,
+account, scheduling, volume, resource-limit or thermal-policy changes.
+
+The same task, `wu_sf6_DS-16x10_Grp19870932of20000000_0`, remained PID 69 with
+i915 DRM client 51 throughout these samples:
+
+| Time, UTC | Reported fraction complete | Application i915 render time | Saved CPU-time checkpoint |
+| --- | --- | --- | --- |
+| 06:33:48 | 0.860108 | 27.764212272 s | 2662.669 s |
+| 06:34:39 | 0.860109 | 36.744937944 s | 2662.669 s |
+| 06:35:42 | 0.860110 | 43.923278724 s | 2664.509 s |
+
+The scientific process accumulated another 16.159 seconds on the GPU engine in
+113.774 seconds of wall time. Both reported progress and its saved checkpoint
+advanced. These counters belong to the scientific application itself, separate
+from the earlier diagnostic OpenCL kernel.
+
+### Why it looked stalled
+
+The initial rollout window ended with the application's log still at GPU lookup
+and no application-sized GPU buffers or engine time. Its later log contains successful OpenCL
+program compilation, kernel creation, buffer allocation and checkpoint loading.
+This supports initialization and compilation as the explanation for that first
+zero-engine observation. The exact compilation duration was not instrumented.
+The [project developer describes runtime OpenCL compilation](https://numberfields.asu.edu/NumberFields/forum_thread.php?id=494&postid=3795#3795)
+as an initial cost of each application run.
+
+Thermal pauses explain much of the slow progress after initialization. Between
+06:25:12 and 06:35:12 UTC, the unchanged supervisor authorized GPU work for
+80.210 of 600 seconds, about 13.37 percent. Individual run intervals were mostly
+two to four seconds. Pauses occurred at 85 degrees Celsius or higher and resume
+decisions at 80 degrees or lower. CPU and integrated GPU share that package.
+
+The container recorded only 9.402 ms of CPU-quota throttling over its lifetime
+at the check, with zero memory cgroup OOM events. This does not support quota
+exhaustion or an OOM as the cause of the observed stall. No restart, image swap,
+GPU concurrency increase, thermal override or task suspension was needed for
+this follow-up.
+
+Both pod UIDs, all PVC UIDs and volume bindings, controller specifications,
+resource policies, mounted guards and BOINC preferences were preserved. Task
+completion, upload and server-side result validation remain outside this check.
