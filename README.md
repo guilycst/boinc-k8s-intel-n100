@@ -1,7 +1,7 @@
 # BOINC on Kubernetes with an Intel N100
 
 Manifests, thermal supervisors and the patched Intel OpenCL image used by the
-[Guigoes BOINC guide](https://guigoes.com/blogs/boinc-ciencia-cpu-gpu-kubernetes/).
+[Guigoes BOINC guide, in preview](https://feat-boinc-science-guide-guigoes-v2.guilycst.workers.dev/blogs/boinc-ciencia-cpu-gpu-kubernetes/).
 This repository contains a portable adaptation of that installation, with
 node/storage placeholders and interactive Science United account attachment.
 
@@ -13,6 +13,7 @@ node/storage placeholders and interactive Science United account attachment.
 | BOINC patch, Dockerfile and executable image checks | [image/](image/) |
 | Intel GPU device plugin, pinned to 0.37.1 with 10 shared slots | [device-plugin/](device-plugin/) |
 | PromQL from the guide | [monitoring.md](monitoring.md) |
+| Editable Mermaid diagrams from the guide | [diagrams/](diagrams/) |
 
 The CPU-only example uses native Kubernetes resources and starts BOINC directly.
 It has no thermal supervisor. The separate pilot runs Python supervisors and
@@ -125,7 +126,10 @@ Let pending work finish, upload and report before permanently removing a client.
 
 The container is published as
 `ghcr.io/guilycst/boinc-k8s-intel-n100`, for `linux/amd64`.
-The manifests will pin its published digest after the initial build.
+The GPU manifest pins the published OCI index digest
+`sha256:6e027d800c8af22eb4996906a134a5f3a7c4389405f01f08ff4ef791f056cdbe`.
+The build is tagged `sha-dbf1ca31b350f0bcb79810312849d2f489048af8`; anonymous
+pulls are supported. See the [container package](https://github.com/users/guilycst/packages/container/package/boinc-k8s-intel-n100).
 The image build uses:
 
 - Official BOINC 8.0.4 base digest

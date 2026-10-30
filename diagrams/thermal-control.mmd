@@ -1,0 +1,6 @@
+flowchart TB
+    accTitle: Ciclo de pausa e retomada por temperatura
+    accDescr: O trabalho começa pausado. Uma leitura válida de 80 graus Celsius ou menos libera a execução. Ao atingir 85 graus ou mais, o trabalho volta a pausar. Entre 80 e 85 graus, mantém o estado anterior. Sensor ausente ou leitura inválida provoca pausa.
+    inicio["Início"] --> pausado["Trabalho pausado"]
+    pausado -->|"80 °C ou menos"| liberado["Liberado para executar"]
+    liberado -->|"85 °C ou mais"| pausado

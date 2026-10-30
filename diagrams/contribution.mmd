@@ -1,0 +1,8 @@
+flowchart TB
+    accTitle: Como a contribuição chega à pesquisa
+    accDescr: O voluntário escolhe áreas no Science United. O gerenciador associa o cliente BOINC aos projetos. Os projetos enviam tarefas ao cliente e recebem os resultados para validação e análise científica.
+    pessoa["Você escolhe áreas"] --> su["Science United"]
+    su -->|"Associa projetos"| cliente["Cliente BOINC"]
+    projetos["Projetos científicos"] -->|"Programas e tarefas"| cliente
+    cliente -->|"Resultados calculados"| projetos
+    projetos --> validacao["Validação e análise científica"]

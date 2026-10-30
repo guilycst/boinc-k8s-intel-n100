@@ -54,7 +54,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: boinc
-        image: ghcr.io/guilycst/boinc-k8s-intel-n100:latest
+        image: ghcr.io/guilycst/boinc-k8s-intel-n100@sha256:6e027d800c8af22eb4996906a134a5f3a7c4389405f01f08ff4ef791f056cdbe
         command:
         - /usr/bin/python3
         - /config/start.py
