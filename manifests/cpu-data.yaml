@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-boinc-1
+  namespace: boinc-pilot
+spec:
+  storageClassName: REPLACE_WITH_STORAGE_CLASS
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi

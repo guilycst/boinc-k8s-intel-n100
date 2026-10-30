@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: boinc-pilot
+resources:
+- manifests/namespace.yaml
+- manifests/priority.yaml
+- manifests/budget.yaml
+- manifests/gpu.yaml
+- manifests/cpu.yaml
+- manifests/cpu-data.yaml
+configMapGenerator:
+- name: boinc-config
+  files:
+  - config/cc_config.xml
+  - config/global_prefs_override.xml
+  - runtime/start.py
+- name: boinc-cpu-guard
+  files:
+  - guard.py=runtime/cpu-guard.py
+- name: boinc-gpu-pilot
+  files:
+  - guard.py=runtime/gpu-guard.py

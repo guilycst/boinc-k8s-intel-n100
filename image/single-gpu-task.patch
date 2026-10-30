@@ -1,0 +1,61 @@
+diff --git a/client/app.cpp b/client/app.cpp
+index a0254c2..54debff 100644
+--- a/client/app.cpp
++++ b/client/app.cpp
+@@ -179,9 +179,9 @@ int ACTIVE_TASK::preempt(PREEMPT_TYPE preempt_type, int reason) {
+         break;
+     case REMOVE_MAYBE_USER:
+     case REMOVE_MAYBE_SCHED:
+-        // GPU jobs: always remove from mem, since it's tying up GPU RAM
+-        //
+-        if (result->uses_gpu()) {
++        // Pilot: honor explicit resident-task preference during GPU pauses.
++        // Otherwise repeated thermal pauses can prevent a first checkpoint.
++        if (result->uses_gpu() && !gstate.global_prefs.leave_apps_in_memory) {
+             remove = true;
+             break;
+         }
+diff --git a/client/app_config.cpp b/client/app_config.cpp
+index 0f57af9..6d49a51 100644
+--- a/client/app_config.cpp
++++ b/client/app_config.cpp
+@@ -95,6 +95,13 @@ int APP_CONFIGS::config_app_versions(PROJECT* p, bool show_warnings) {
+             );
+         }
+     }
++    // App configuration must not re-enable fractional GPU task sharing.
++    for (unsigned int j=0; j<gstate.app_versions.size(); j++) {
++        APP_VERSION* avp = gstate.app_versions[j];
++        if (avp->project == p && avp->gpu_usage.rsc_type && avp->gpu_usage.usage < 1) {
++            avp->gpu_usage.usage = 1;
++        }
++    }
+     if (showed_notice) return ERR_XML_PARSE;
+     return 0;
+ }
+diff --git a/client/client_types.cpp b/client/client_types.cpp
+index 49ce09c..32457fd 100644
+--- a/client/client_types.cpp
++++ b/client/client_types.cpp
+@@ -825,6 +825,8 @@ int APP_VERSION::parse(XML_PARSER& xp) {
+         if (xp.match_tag("/app_version")) {
+             rt = gpu_usage.rsc_type;
+             if (rt) {
++                // Pilot: each GPU task reserves at least one complete device.
++                if (gpu_usage.usage < 1) gpu_usage.usage = 1;
+                 dont_throttle = true;        // don't throttle GPU apps
+                 if (strstr(plan_class, "opencl")) {
+                     if (!coprocs.coprocs[rt].have_opencl) {
+diff --git a/client/cpu_sched.cpp b/client/cpu_sched.cpp
+index 1a93ec7..aae17a1 100644
+--- a/client/cpu_sched.cpp
++++ b/client/cpu_sched.cpp
+@@ -1438,7 +1438,7 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
+                 // remove from memory GPU jobs that were suspended by CPU throttling
+                 // and are now unscheduled.
+                 //
+-                if (atp->result->uses_gpu()) {
++                if (atp->result->uses_gpu() && !global_prefs.leave_apps_in_memory) {
+                     atp->preempt(REMOVE_ALWAYS);
+                     request_schedule_cpus("removed suspended GPU task");
+                     break;

@@ -1,0 +1,9 @@
+<cc_config>
+  <options>
+    <!-- Advertise the same CPU count as the container's hard limit. -->
+    <ncpus>2</ncpus>
+    <no_gpus>1</no_gpus>
+    <max_file_xfers>2</max_file_xfers>
+    <max_file_xfers_per_project>1</max_file_xfers_per_project>
+  </options>
+</cc_config>

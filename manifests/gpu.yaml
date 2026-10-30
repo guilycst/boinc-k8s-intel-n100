@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: boinc-workers
+  namespace: boinc-pilot
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: boinc
+    app.kubernetes.io/instance: boinc-workers
+  ports:
+  - name: rpc
+    port: 31416
+    targetPort: 31416
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: boinc
+  namespace: boinc-pilot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: boinc
+      app.kubernetes.io/instance: boinc-workers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: boinc
+        app.kubernetes.io/instance: boinc-workers
+    spec:
+      priorityClassName: boinc-pilot-background
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 120
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/hostname: REPLACE_WITH_GPU_NODE
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: boinc
+            topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: boinc
+        image: ghcr.io/guilycst/boinc-k8s-intel-n100:latest
+        command:
+        - /usr/bin/python3
+        - /config/start.py
+        workingDir: /var/lib/boinc
+        env:
+        - name: BOINC_GPU_PILOT
+          value: '1'
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: XDG_CACHE_HOME
+          value: /tmp/cache
+        - name: NEO_CACHE_PERSISTENT
+          value: '0'
+        - name: BOINC_MEMORY_LIMIT_BYTES
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 25m
+            memory: 2Gi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+            gpu.intel.com/i915: '1'
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - test -f /tmp/gpu-guard.ready && /usr/bin/boinccmd --get_cc_status
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: gpu-pilot
+          mountPath: /gpu
+          readOnly: true
+        - name: data
+          mountPath: /var/lib/boinc
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: gpu-pilot
+        configMap:
+          name: boinc-gpu-pilot
+      - name: config
+        configMap:
+          name: boinc-config
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
+  serviceName: boinc-workers
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      storageClassName: REPLACE_WITH_STORAGE_CLASS
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 8Gi

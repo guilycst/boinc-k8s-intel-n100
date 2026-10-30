@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boinc-cpu-1
+  namespace: boinc-pilot
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: boinc
+      app.kubernetes.io/instance: boinc-cpu-1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: boinc
+        app.kubernetes.io/instance: boinc-cpu-1
+    spec:
+      priorityClassName: boinc-pilot-background
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 120
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/hostname: REPLACE_WITH_CPU_NODE
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: boinc
+            topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: boinc
+        image: boinc/client@sha256:a9629c767fcaab695401a2a4a6a34befe087f6cc59a41c51539531eff645e6e2
+        command:
+        - /usr/bin/python3
+        - /config/start.py
+        workingDir: /var/lib/boinc
+        env:
+        - name: BOINC_MEMORY_LIMIT_BYTES
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 25m
+            memory: 2Gi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - test -f /tmp/cpu-guard.ready && /usr/bin/boinccmd --get_cc_status
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: cpu-guard
+          mountPath: /cpu
+          readOnly: true
+        - name: data
+          mountPath: /var/lib/boinc
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: cpu-guard
+        configMap:
+          name: boinc-cpu-guard
+      - name: data
+        persistentVolumeClaim:
+          claimName: data-boinc-1
+      - name: config
+        configMap:
+          name: boinc-config
+      - name: tmp
+        emptyDir:
+          sizeLimit: 64Mi
+      hostname: boinc-1
