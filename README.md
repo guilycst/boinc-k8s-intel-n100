@@ -48,6 +48,23 @@ kubectl --context YOUR_CONTEXT -n boinc-example rollout status statefulset/boinc
 
 Follow account attachment below with namespace `boinc-example`, pod `boinc-0`.
 
+## Scheduling priority
+
+The CPU example uses `boinc-example-background`; both pilot clients use
+`boinc-pilot-background`. These PriorityClasses have value `-1000`, below the
+default priority of `0`, and `globalDefault: false`.
+
+When a higher-priority pod cannot be scheduled, the scheduler can terminate
+BOINC pods if removing them makes room for that pod and its preemption policy
+allows it. BOINC's `preemptionPolicy: Never` prevents it from preempting other
+pods; it does not protect BOINC from being preempted. See the
+[Kubernetes preemption documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#non-preempting-priorityclass).
+
+Preemption terminates the pod rather than suspending calculations inside BOINC.
+Recovery depends on application checkpoints saved on the PVC. Priority does not
+reduce a running client's CPU share or detect latency in other services;
+requests, limits and the pilot's thermal guards remain separate controls.
+
 ## Intel N100 pilot
 
 The root Kustomization creates namespace `boinc-pilot`, a one-replica GPU
@@ -162,6 +179,9 @@ make check
 
 Checks render all Kustomizations, parse XML, inspect workload isolation and
 budgets, and exercise hysteresis, startup RPC failure and configuration handling.
+They also verify that each BOINC workload references a rendered PriorityClass
+with value `-1000`, `preemptionPolicy: Never` and `globalDefault: false`.
+These manifest checks do not trigger or prove scheduler preemption in a cluster.
 See [VALIDATION.md](VALIDATION.md) for the public image and runtime test receipt.
 CI builds the image on AMD64. Local unit/manifest checks do not prove iGPU driver
 compatibility or scientific-task availability; those depend on the target host

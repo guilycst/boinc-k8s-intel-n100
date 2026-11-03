@@ -14,6 +14,8 @@ for directory in (root, root / 'examples/cpu', root / 'device-plugin'):
                             check=True, text=True, capture_output=True)
     objects = list(yaml.safe_load_all(result.stdout))
     assert all(o['kind'] not in ('Secret', 'SealedSecret') for o in objects)
+    priority_classes = {o['metadata']['name']: o for o in objects
+                        if o['kind'] == 'PriorityClass'}
     for obj in objects:
         if obj['kind'] == 'ConfigMap':
             for key, value in obj.get('data', {}).items():
@@ -22,6 +24,10 @@ for directory in (root, root / 'examples/cpu', root / 'device-plugin'):
         if obj['kind'] not in ('Deployment', 'StatefulSet'):
             continue
         pod = obj['spec']['template']['spec']
+        priority_class = priority_classes[pod['priorityClassName']]
+        assert priority_class['value'] == -1000
+        assert priority_class['preemptionPolicy'] == 'Never'
+        assert priority_class['globalDefault'] is False
         assert pod['automountServiceAccountToken'] is False
         assert pod['securityContext']['runAsUser'] == 1000
         assert pod['securityContext']['seccompProfile']['type'] == 'RuntimeDefault'
@@ -42,4 +48,4 @@ for directory in (root, root / 'examples/cpu', root / 'device-plugin'):
             container = workload['spec']['template']['spec']['containers'][0]
             assert container['resources']['limits']['cpu'] == '2'
             assert container['resources']['limits']['memory'] == '2Gi'
-print('Public manifests render; XML, account isolation and resource contracts passed.')
+print('Public manifests render; XML, account isolation, priority and resource contracts passed.')

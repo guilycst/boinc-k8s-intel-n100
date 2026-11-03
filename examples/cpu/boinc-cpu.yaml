@@ -15,6 +15,7 @@ metadata:
   name: boinc-example-background
 value: -1000
 globalDefault: false
+# Prevents BOINC from preempting other pods; higher-priority pods can still preempt it.
 preemptionPolicy: Never
 description: Low scheduling priority for volunteer science.
 ---
