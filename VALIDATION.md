@@ -115,3 +115,23 @@ this follow-up.
 Both pod UIDs, all PVC UIDs and volume bindings, controller specifications,
 resource policies, mounted guards and BOINC preferences were preserved. Task
 completion, upload and server-side result validation remain outside this check.
+
+## Scheduling priority validation, 2026-11-03
+
+The README now explains the CPU example's and both pilot clients' existing
+`-1000` priority, the direction of `preemptionPolicy: Never`, and checkpoint
+recovery after pod termination. Comments clarify the same policy in both
+PriorityClass manifests. Parsed YAML resources are unchanged, and the CPU
+example remains byte-identical to the blog's downloadable copy.
+
+`make check PYTHON=.venv/bin/python` passed, including the new PriorityClass
+checks for all three BOINC workload templates. The validator resolves each
+template's class reference and requires value `-1000`, policy `Never` and
+`globalDefault: false`. A local fault-injection check rejected 14 invalid
+rendered-manifest variants: wrong values, policies or defaults, removed classes,
+and missing or unknown workload class references.
+
+No cluster resources changed. No scheduler preemption experiment was performed;
+the checks prove manifest configuration, not runtime preemption or lossless
+scientific-task recovery. The image and earlier hardware observations above
+were not revalidated by this documentation and test change.

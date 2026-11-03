@@ -4,5 +4,6 @@ metadata:
   name: boinc-pilot-background
 value: -1000
 globalDefault: false
+# Prevents BOINC from preempting other pods; higher-priority pods can still preempt it.
 preemptionPolicy: Never
 description: Volunteer computing yields scheduling priority to normal workloads.
